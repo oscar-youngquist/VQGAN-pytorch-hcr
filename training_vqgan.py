@@ -79,7 +79,7 @@ class TrainVQGAN:
                     self.opt_vq.step()
                     self.opt_disc.step()
 
-                    if i % 10 == 0:
+                    if i % 100 == 0:
                         with torch.no_grad():
                             real_fake_images = torch.cat((imgs[:4], decoded_images.add(1).mul(0.5)[:4]))
                             vutils.save_image(real_fake_images, os.path.join("results", f"{epoch}_{i}.jpg"), nrow=4)
@@ -96,23 +96,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="VQGAN")
     parser.add_argument('--latent-dim', type=int, default=256, help='Latent dimension n_z (default: 256)')
     parser.add_argument('--image-size', type=int, default=256, help='Image height and width (default: 256)')
-    parser.add_argument('--num-codebook-vectors', type=int, default=1024, help='Number of codebook vectors (default: 256)')
+    parser.add_argument('--num-codebook-vectors', type=int, default=1024, help='Number of codebook vectors (default: 1024)')
     parser.add_argument('--beta', type=float, default=0.25, help='Commitment loss scalar (default: 0.25)')
     parser.add_argument('--image-channels', type=int, default=3, help='Number of channels of images (default: 3)')
     parser.add_argument('--dataset-path', type=str, default='/data', help='Path to data (default: /data)')
     parser.add_argument('--device', type=str, default="cuda", help='Which device the training is on')
-    parser.add_argument('--batch-size', type=int, default=6, help='Input batch size for training (default: 6)')
+    parser.add_argument('--batch-size', type=int, default=12, help='Input batch size for training (default: 6)')
     parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train (default: 50)')
-    parser.add_argument('--learning-rate', type=float, default=2.25e-05, help='Learning rate (default: 0.0002)')
+    parser.add_argument('--learning-rate', type=float, default=4.5e-06, help='Learning rate (default: 0.0002)')
     parser.add_argument('--beta1', type=float, default=0.5, help='Adam beta param (default: 0.0)')
     parser.add_argument('--beta2', type=float, default=0.9, help='Adam beta param (default: 0.999)')
-    parser.add_argument('--disc-start', type=int, default=10000, help='When to start the discriminator (default: 0)')
+    parser.add_argument('--disc-start', type=int, default=1000, help='When to start the discriminator (default: 0)')
     parser.add_argument('--disc-factor', type=float, default=1., help='')
     parser.add_argument('--rec-loss-factor', type=float, default=1., help='Weighting factor for reconstruction loss.')
     parser.add_argument('--perceptual-loss-factor', type=float, default=1., help='Weighting factor for perceptual loss.')
+    parser.add_argument('--output-path', type=str, default='/vqgan_training', help='Location to save training data.')
 
     args = parser.parse_args()
-    args.dataset_path = r"C:\Users\dome\datasets\flowers"
+    args.dataset_path = r"/home/oyoungquist/Research/CPFP/processed_data/reprocessed_positive_train_deep_acc_eval_vqgan.txt"
 
     train_vqgan = TrainVQGAN(args)
 

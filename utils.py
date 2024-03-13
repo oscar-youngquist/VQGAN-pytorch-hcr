@@ -5,6 +5,7 @@ import torch.nn as nn
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
+import random
 
 
 # --------------------------------------------- #
@@ -15,8 +16,25 @@ class ImagePaths(Dataset):
     def __init__(self, path, size=None):
         self.size = size
 
-        self.images = [os.path.join(path, file) for file in os.listdir(path)]
+        print("Loading data from location: {:s}".format(path))
+        # read in a list of file-paths
+        lines = None
+        with open(path, "r") as f:
+            lines = f.read().splitlines()
+
+        self.images = None
+
+        random.shuffle(lines)
+
+        if "train" in path:
+            self.images = lines[0:100000]
+        elif "vali" in path:
+            self.images = lines[0:5000]
+        else:
+            self.images = lines
         self._length = len(self.images)
+
+        print("Loaded {:d} images".format(self._length))
 
         self.rescaler = albumentations.SmallestMaxSize(max_size=self.size)
         self.cropper = albumentations.CenterCrop(height=self.size, width=self.size)
@@ -41,9 +59,12 @@ class ImagePaths(Dataset):
 
 
 def load_data(args):
-    train_data = ImagePaths(args.dataset_path, size=256)
-    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=False)
-    return train_loader
+    train_data = ImagePaths(args.train_dataset_path, size=256)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+    val_data = ImagePaths(args.val_dataset_path, size=256)
+    val_data_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    return train_loader, val_data_loader
 
 
 # --------------------------------------------- #
