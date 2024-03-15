@@ -67,13 +67,14 @@ class LitVQGAN(L.LightningModule):
         opt_vq.zero_grad()
         # vq_loss.backward(retain_graph=True)
         self.manual_backward(vq_loss, retain_graph=True)
-
-        opt_disc.zero_grad()
-        # gan_loss.backward()
-        self.manual_backward(gan_loss)
-
         opt_vq.step()
-        opt_disc.step()
+
+        # just completely skip updating the GAN disciminator unless it has "turned on"?
+        if disc_factor > 0.0:
+            opt_disc.zero_grad()
+            # gan_loss.backward()
+            self.manual_backward(gan_loss)
+            opt_disc.step()
 
         self.log_dict({"train/vq_loss":vq_loss, "train/gan_loss":gan_loss, "train/rec_loss":rec_loss.mean(), 
                        "train/perceptual_loss":perceptual_loss.mean(), "train/perceptual_rec_loss":perceptual_rec_loss,
@@ -81,11 +82,12 @@ class LitVQGAN(L.LightningModule):
         
         # randomly save off some images
         rand_sample = random.random()
-        if rand_sample > 0.95:
-            vutils.save_image(decoded_images, os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}.jpg"), nrow=4)
-            vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_difference.jpg"), nrow=4)
+        if rand_sample > 0.99:
+            vutils.save_image(decoded_images, os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_reconstruction.png"), nrow=4)
+            vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_difference.png"), nrow=4)
+            vutils.save_image(batch, os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_input.png"), nrow=4)
 
-    def validation_step(self, batch, batch_inx):
+    def validation_step(self, batch, batch_idx):
         # training_step defines the train loop.
         decoded_images, _, q_loss = self.vqgan(batch)
         
@@ -105,14 +107,16 @@ class LitVQGAN(L.LightningModule):
 
         # Could also do this via a callback... might switch later
         if not self.logged_validation_batch:
-            output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_inx}.jpg")
+            output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}.png")
             
             if self.first_ever_validation_image:
-                output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch-1}_{batch_inx}.jpg")
+                output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch-1}_{batch_idx}.png")
             
             self.logged_validation_batch = True
-            vutils.save_image(decoded_images, os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_inx}.jpg"), nrow=4)
-            vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_inx}_difference.jpg"), nrow=4)
+            vutils.save_image(decoded_images, os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_reconstruction.png"), nrow=4)
+            vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_difference.png"), nrow=4)
+            vutils.save_image(batch, os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_input.png"), nrow=4)
+
 
         self.log_dict({"val/gan_loss":gan_loss, "val/rec_loss":rec_loss.mean(),
                 "val/perceptual_loss":perceptual_loss.mean(), "val/perceptual_rec_loss":perceptual_rec_loss,
