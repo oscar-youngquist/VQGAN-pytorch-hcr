@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser.add_argument('--learning-rate', type=float, default=2.5e-05, help='Learning rate (default: 0.0002)')
     parser.add_argument('--beta1', type=float, default=0.5, help='Adam beta param (default: 0.0)')
     parser.add_argument('--beta2', type=float, default=0.9, help='Adam beta param (default: 0.999)')
-    parser.add_argument('--disc-start', type=int, default=250000, help='When to start the discriminator (default: 0)')
+    parser.add_argument('--disc-start', type=int, default=200000, help='When to start the discriminator (default: 0)')
     parser.add_argument('--disc-factor', type=float, default=0.8, help='')
     parser.add_argument('--rec-loss-factor', type=float, default=1., help='Weighting factor for reconstruction loss.')
     parser.add_argument('--perceptual-loss-factor', type=float, default=1., help='Weighting factor for perceptual loss.')

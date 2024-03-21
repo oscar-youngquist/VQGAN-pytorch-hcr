@@ -37,11 +37,19 @@ class LitVQGAN(L.LightningModule):
 
         self.logged_validation_batch = False
 
+        self.comp_graph_added = False
+
     def training_step(self, batch, batch_idx):
         opt_vq, opt_disc = self.optimizers()
 
         if self.logged_validation_batch:
             self.logged_validation_batch = False
+
+        # add the computational graph of the model
+        if not self.comp_graph_added:
+            self.comp_graph_added = True
+            sample_img = torch.rand((1,3,256,256)).to(self.args.device)
+            self.logger.experiment.add_graph(self.vqgan, sample_img)
 
         # training_step defines the train loop.
         decoded_images, _, q_loss = self.vqgan(batch)
@@ -67,22 +75,25 @@ class LitVQGAN(L.LightningModule):
         opt_vq.zero_grad()
         # vq_loss.backward(retain_graph=True)
         self.manual_backward(vq_loss, retain_graph=True)
-        opt_vq.step()
+        
 
         # just completely skip updating the GAN disciminator unless it has "turned on"?
-        if disc_factor > 0.0:
-            opt_disc.zero_grad()
-            # gan_loss.backward()
-            self.manual_backward(gan_loss)
-            opt_disc.step()
+        # if disc_factor > 0.0:
+        
+        opt_disc.zero_grad()
+        # gan_loss.backward()
+        self.manual_backward(gan_loss)
+        
+        opt_vq.step()
+        opt_disc.step()
 
-        self.log_dict({"train/vq_loss":vq_loss, "train/gan_loss":gan_loss, "train/rec_loss":rec_loss.mean(), 
+        self.log_dict({"train/vq_loss":vq_loss, "train/gan_loss":gan_loss, "train/q_loss":q_loss, "train/g_loss":g_loss, "train/rec_loss":rec_loss.mean(), 
                        "train/perceptual_loss":perceptual_loss.mean(), "train/perceptual_rec_loss":perceptual_rec_loss,
                        "train/d_loss_real":d_loss_real, "train/d_loss_fake":d_loss_fake}, prog_bar=True)
         
         # randomly save off some images
         rand_sample = random.random()
-        if rand_sample > 0.99:
+        if rand_sample > 0.999:
             vutils.save_image(decoded_images, os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_reconstruction.png"), nrow=4)
             vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_difference.png"), nrow=4)
             vutils.save_image(batch, os.path.join(self.args.output_path, "training_images", f"{self.current_epoch}_{batch_idx}_input.png"), nrow=4)
@@ -110,18 +121,37 @@ class LitVQGAN(L.LightningModule):
             output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}.png")
             
             if self.first_ever_validation_image:
+                self.first_ever_validation_image = False
                 output_path = os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch-1}_{batch_idx}.png")
             
             self.logged_validation_batch = True
+            # save the images to file
             vutils.save_image(decoded_images, os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_reconstruction.png"), nrow=4)
             vutils.save_image(torch.abs(batch - decoded_images), os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_difference.png"), nrow=4)
             vutils.save_image(batch, os.path.join(self.args.output_path, "validation_images", f"{self.current_epoch}_{batch_idx}_input.png"), nrow=4)
 
+            # log the images to tensorboard
+            # need to loop over....
+            for i in range(0, self.args.batch_size):
+                self.logger.experiment.add_image("images/input_val_{:d}".format(i), batch[i], self.current_epoch)
+                self.logger.experiment.add_image("images/recon_val_{:d}".format(i), decoded_images[i], self.current_epoch)
+                self.logger.experiment.add_image("images/difference_val_{:d}".format(i), torch.abs(batch[i] - decoded_images[i]), self.current_epoch)
 
-        self.log_dict({"val/gan_loss":gan_loss, "val/rec_loss":rec_loss.mean(),
+
+        # all of these are done per-batch
+        self.log_dict({"val/gan_loss":gan_loss, "val/rec_loss":rec_loss.mean(), "val/q_loss":q_loss, 
                 "val/perceptual_loss":perceptual_loss.mean(), "val/perceptual_rec_loss":perceptual_rec_loss,
                 "val/d_loss_real":d_loss_real, "val/d_loss_fake":d_loss_fake}, prog_bar=True)
+        
+    def on_train_epoch_end(self):
+        # add weight histograms
+        self.histogram_adder()
 
+    def histogram_adder(self):
+        # iterate over parameters and add their values to a histogram 
+        for name, params in self.named_parameters():
+            _name = "weights/" + name
+            self.logger.experiment.add_histogram(_name, params, self.current_epoch)
 
 
     def configure_optimizers(self):
