@@ -26,18 +26,18 @@ class ImagePaths(Dataset):
 
         random.shuffle(lines)
 
-        # if "train" in path:
-        #     self.images = lines[:500000]
-        # elif "vali" in path:
-        #     self.images = lines[:10000]
-        # else:
-        #     self.images = lines
         if "train" in path:
-            self.images = lines[:1000]
+            self.images = lines[:500000]
         elif "vali" in path:
-            self.images = lines[:100]
+            self.images = lines[:10000]
         else:
             self.images = lines
+        # if "train" in path:
+        #     self.images = lines[:1000]
+        # elif "vali" in path:
+        #     self.images = lines[:100]
+        # else:
+        #     self.images = lines
 
         self._length = len(self.images)
 

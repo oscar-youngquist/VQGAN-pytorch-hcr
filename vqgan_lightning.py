@@ -154,6 +154,28 @@ class LitVQGAN(L.LightningModule):
             self.logger.experiment.add_histogram(_name, params, self.current_epoch)
 
 
+    def get_discrim_features(self, x_batch, recons_batch):
+        _ = self.discriminator(x_batch)
+        input_activations = self.discriminator.get_last_layer_activations()
+
+        _ = self.discriminator(recons_batch)
+        recon_activations = self.discriminator.get_last_layer_activations()
+
+        return torch.abs(input_activations - recon_activations), input_activations
+    
+    def encode_GAT_nodes(self, node_batch):
+        _cached_mode = self.training
+        self.vqgan.eval()
+        decoded_images = None
+        with torch.no_grad():
+            decoded_images, _, _ = self.vqgan(node_batch)
+
+        # discrim_feats_diff, discrim_feats_input = self.get_discrim_features(node_batch, decoded_images)
+
+        # , discrim_feats_diff, discrim_feats_input
+        self.training = _cached_mode
+        return decoded_images, torch.abs(node_batch - decoded_images)
+
     def configure_optimizers(self):
         lr = self.args.learning_rate
         opt_vq = torch.optim.Adam(
