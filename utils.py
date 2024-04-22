@@ -26,12 +26,23 @@ class ImagePaths(Dataset):
 
         random.shuffle(lines)
 
+        # full model training
         if "train" in path:
-            self.images = lines[:500000]
+            self.images = lines
         elif "vali" in path:
-            self.images = lines[:10000]
+            self.images = lines
         else:
             self.images = lines
+        
+        # small-train test
+        # if "train" in path:
+        #     self.images = lines[:500000]
+        # elif "vali" in path:
+        #     self.images = lines[:10000]
+        # else:
+        #     self.images = lines
+
+        # debug
         # if "train" in path:
         #     self.images = lines[:1000]
         # elif "vali" in path:

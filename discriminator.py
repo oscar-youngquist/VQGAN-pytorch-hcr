@@ -22,18 +22,18 @@ class Discriminator(nn.Module):
                 nn.LeakyReLU(0.2, True)
             ]
 
-        layers.append(nn.Conv2d(num_filters_last * num_filters_mult, 1, 4, 1, 1))
+        # layers.append(nn.Conv2d(num_filters_last * num_filters_mult, 1, 4, 1, 1))
         self.model = nn.Sequential(*layers)
-        # self.output_layer = nn.Conv2d(num_filters_last * num_filters_mult, 1, 4, 1, 1)
+        self.output_layer = nn.Conv2d(num_filters_last * num_filters_mult, 1, 4, 1, 1)
 
         self.final_layer_activations_ = None
 
     def forward(self, x):
-        # x = self.model(x)
-        # self.final_layer_activations_ = x
-        # return self.output_layer(x)
+        x = self.model(x)
+        self.final_layer_activations_ = x
+        return self.output_layer(x)
 
-        return self.model(x)
+        # return self.model(x)
 
 
     def get_last_layer_activations(self):
