@@ -46,7 +46,7 @@ class VQGAN(nn.Module):
 
     @staticmethod
     def adopt_weight(disc_factor, i, threshold, value=0.):
-        if i < threshold:
+        if i < int(threshold):
             disc_factor = value
         return disc_factor
 

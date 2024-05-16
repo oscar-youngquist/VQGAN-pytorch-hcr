@@ -39,6 +39,9 @@ class LitVQGAN(L.LightningModule):
 
         self.comp_graph_added = False
 
+        self.validation_losses = []
+        self.avg_validation_loss = None
+
     def training_step(self, batch, batch_idx):
         opt_vq, opt_disc = self.optimizers()
 
@@ -143,9 +146,15 @@ class LitVQGAN(L.LightningModule):
                 "val/perceptual_loss":perceptual_loss.mean(), "val/perceptual_rec_loss":perceptual_rec_loss,
                 "val/d_loss_real":d_loss_real, "val/d_loss_fake":d_loss_fake}, prog_bar=True)
         
+        self.validation_losses.append(perceptual_rec_loss.detach().float().cpu().numpy().tolist()) 
+        
     def on_train_epoch_end(self):
         # add weight histograms
         self.histogram_adder()
+    
+    def on_validation_epoch_end(self):
+        self.avg_validation_loss = np.mean(self.validation_losses)
+        self.validation_losses.clear()
 
     def histogram_adder(self):
         # iterate over parameters and add their values to a histogram 

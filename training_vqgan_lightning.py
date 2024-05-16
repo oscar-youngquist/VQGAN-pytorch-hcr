@@ -32,7 +32,7 @@ class TrainVQGAN:
 
         train_dataloader, val_dataloader = load_data(args)
 
-        trainer = L.Trainer(max_epochs=100, default_root_dir=args.output_path)
+        trainer = L.Trainer(max_epochs=args.epochs, default_root_dir=args.output_path, enable_progress_bar=False)
         trainer.fit(model=self.vqgan_lightning_model, train_dataloaders=train_dataloader, 
                     val_dataloaders=val_dataloader)
         
@@ -46,10 +46,12 @@ class TrainVQGAN:
 
         print(date_time)
 
+        output_path = os.path.join(args.output_path, "initial_raytune_run", date_time)
+
         # make the output folder if it does not exist
-        if not os.path.exists(os.path.join(args.output_path, date_time)):
-            os.makedirs(os.path.join(args.output_path, date_time), exist_ok=True)
-            args.output_path = os.path.join(args.output_path, date_time)
+        if not os.path.exists(output_path):
+            os.makedirs(output_path, exist_ok=True)
+            args.output_path = output_path
 
         print("Output path: {:s}".format(args.output_path))
 
